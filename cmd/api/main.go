@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Sabbir185/gpc/config"
@@ -22,8 +27,27 @@ func main() {
 		IdleTimeout:  time.Second * 60,
 	}
 
-	log.Printf("Starting server on port %s", cnf.App.Port)
-	if err := server.ListenAndServe(); err != nil {
-		log.Fatalf("ListenAndServe error: %v", err.Error())
+	// Graceful Shutdown, error handling or listen and serve
+	go func() {
+		log.Printf("Starting server on port %s", cnf.App.Port)
+		err := server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Fatalf("Server failed to start: %v", err.Error())
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+
+	sig := <-quit
+	log.Printf("Server is shutting down with signal: %v\n", sig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("Server forced to shutdown:\n%v\n", err.Error())
 	}
+
+	log.Println("Server exited properly")
 }
