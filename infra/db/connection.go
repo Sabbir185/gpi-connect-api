@@ -15,14 +15,16 @@ func Connect(databaseUrl string) (*sql.DB, error) {
 		return nil, fmt.Errorf("sql.Open: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	db.SetMaxOpenConns(10)
+	db.SetMaxIdleConns(10)
+	db.SetConnMaxLifetime(30 * time.Minute)
+	db.SetConnMaxIdleTime(10 * time.Minute)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	if err := db.PingContext(ctx); err != nil {
+		db.Close()
 		return nil, fmt.Errorf("db.PingContext: %w", err)
 	}
 
