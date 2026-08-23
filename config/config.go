@@ -16,6 +16,7 @@ type App struct {
 type Database struct {
 	Url            string
 	MigrationsPath string
+	RedisUrl       string
 }
 
 // -------- Config --------
@@ -39,6 +40,7 @@ func LoadConfig() *Config {
 		DB: Database{
 			Url:            getEnv("DATABASE_URL"),
 			MigrationsPath: getEnv("DB_MIGRATIONS_PATH"),
+			RedisUrl:       getEnv("REDIS_URL"),
 		},
 	}
 }

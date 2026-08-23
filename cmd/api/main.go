@@ -12,12 +12,12 @@ import (
 
 	"github.com/Sabbir185/gpc/config"
 	"github.com/Sabbir185/gpc/infra/db"
+	"github.com/Sabbir185/gpc/infra/redis"
 	"github.com/Sabbir185/gpc/internal"
 )
 
 func main() {
 	cnf := config.LoadConfig()
-	log.Println(cnf.App.Name)
 
 	db, err := db.Connect(cnf.DB.Url)
 	if err != nil {
@@ -25,6 +25,13 @@ func main() {
 	}
 	defer db.Close()
 	log.Println("Connected to database successfully")
+
+	redisClient, err := redis.Connect(cnf.DB.RedisUrl)
+	if err != nil {
+		log.Fatalf("Failed to connect to redis: %v", err)
+	}
+	defer redisClient.Close()
+	log.Println("Connected to redis successfully")
 
 	// Register all the routes
 	multiplexer := http.NewServeMux()
