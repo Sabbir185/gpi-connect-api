@@ -11,13 +11,16 @@ import (
 	"time"
 
 	"github.com/Sabbir185/gpc/config"
+	"github.com/Sabbir185/gpc/internal"
 )
 
 func main() {
 	cnf := config.LoadConfig()
 	log.Println(cnf.App.Name)
 
-	mux := http.NewServeMux()
+	// Register all the routes
+	multiplexer := http.NewServeMux()
+	mux := internal.RegisterRoutes(multiplexer)
 
 	server := &http.Server{
 		Addr:         ":" + cnf.App.Port,
