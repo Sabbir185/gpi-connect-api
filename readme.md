@@ -10,3 +10,11 @@ Your daily activity solution
 - Meetings and events management
 - AI based insights and analytics
 - Group or one-to-one chat and messaging
+
+
+#### Migration
+```
+make migrate-create name="users table"
+make migrate-up
+make migrate-down
+```
