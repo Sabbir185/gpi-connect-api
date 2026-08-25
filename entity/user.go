@@ -24,7 +24,8 @@ type User struct {
 	Status         UserStatus `db:"status"`
 	Address        string     `db:"address"`
 	City           string     `db:"city"`
-	Country        string     `db:"country"`
+	CountryID      int64      `db:"country_id"`
+	Country        *Country   `db:"-"`
 	PostCode       string     `db:"post_code"`
 	RoleID         int64      `db:"role_id"`
 	Role           *Role      `db:"-"`
