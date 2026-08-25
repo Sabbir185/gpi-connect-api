@@ -1,13 +1,17 @@
 package entity
 
-import "time"
+import (
+	"time"
+
+	"github.com/Sabbir185/gpc/infra/db"
+)
 
 type Permission struct {
-	ID          string `db:"id"`
-	Name        string `db:"name"`
-	Description string `db:"description"`
-	Module      string `db:"module"`
-	Action      string `db:"action"`
+	ID          string `db:"id" json:"id"`
+	Name        string `db:"name" json:"name"`
+	Description string `db:"description" json:"description"`
+	Module      string `db:"module" json:"module"`
+	Action      string `db:"action" json:"action"`
 }
 
 type UserRole string
@@ -29,10 +33,10 @@ const (
 
 // Entity
 type Role struct {
-	ID          int64        `db:"id"`
-	Name        UserRole     `db:"name"`
-	Scope       Scope        `db:"scope"`
-	Permissions []Permission `db:"-"`
-	CreatedAt   time.Time    `db:"created_at"`
-	UpdatedAt   time.Time    `db:"updated_at"`
+	ID          int64                   `db:"id"`
+	Name        UserRole                `db:"name"`
+	Scope       Scope                   `db:"scope"`
+	Permissions db.JSONB[[]Permission] `db:"permissions"`
+	CreatedAt   time.Time               `db:"created_at"`
+	UpdatedAt   time.Time               `db:"updated_at"`
 }

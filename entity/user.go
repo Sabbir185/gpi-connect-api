@@ -18,7 +18,7 @@ type User struct {
 	ID             int64      `db:"id"`
 	Name           string     `db:"name"`
 	ProfileImg     string     `db:"profile_img"`
-	Email          string     `db:"email"`
+	Email          *string    `db:"email"`
 	Phone          string     `db:"phone"`
 	HashedPassword string     `db:"hashed_password"`
 	Status         UserStatus `db:"status"`
