@@ -1,4 +1,4 @@
-module github.com/Sabbir185/gpc
+module github.com/Sabbir185/geopunch
 
 go 1.27.0
 

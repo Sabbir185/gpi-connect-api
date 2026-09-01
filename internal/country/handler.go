@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Sabbir185/gpc/pkg/response"
-	"github.com/Sabbir185/gpc/pkg/validation"
+	"github.com/Sabbir185/geopunch/pkg/response"
+	"github.com/Sabbir185/geopunch/pkg/validation"
 	"github.com/go-playground/validator/v10"
 )
 

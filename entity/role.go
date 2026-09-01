@@ -3,7 +3,7 @@ package entity
 import (
 	"time"
 
-	"github.com/Sabbir185/gpc/infra/db"
+	"github.com/Sabbir185/geopunch/infra/db"
 )
 
 type Permission struct {

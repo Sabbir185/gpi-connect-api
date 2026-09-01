@@ -1,4 +1,4 @@
-#### GPC — GeoPunch Connect
+#### GeoPunch — GeoPunch Connect
 
 Your daily activity solution
 - Smart Geo location based attendance

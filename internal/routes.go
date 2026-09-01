@@ -3,10 +3,10 @@ package internal
 import (
 	"net/http"
 
-	"github.com/Sabbir185/gpc/internal/country"
-	"github.com/Sabbir185/gpc/internal/healthz"
-	"github.com/Sabbir185/gpc/internal/user"
-	"github.com/Sabbir185/gpc/pkg/response"
+	"github.com/Sabbir185/geopunch/internal/country"
+	"github.com/Sabbir185/geopunch/internal/healthz"
+	"github.com/Sabbir185/geopunch/internal/user"
+	"github.com/Sabbir185/geopunch/pkg/response"
 )
 
 func handleSideRequest(w http.ResponseWriter, r *http.Request) {

@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/Sabbir185/gpc/config"
-	"github.com/Sabbir185/gpc/infra/db"
-	"github.com/Sabbir185/gpc/infra/redis"
-	"github.com/Sabbir185/gpc/internal"
+	"github.com/Sabbir185/geopunch/config"
+	"github.com/Sabbir185/geopunch/infra/db"
+	"github.com/Sabbir185/geopunch/infra/redis"
+	"github.com/Sabbir185/geopunch/internal"
 )
 
 func main() {
