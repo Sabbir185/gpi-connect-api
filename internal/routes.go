@@ -3,19 +3,30 @@ package internal
 import (
 	"net/http"
 
-	"github.com/Sabbir185/geopunch/internal/country"
-	"github.com/Sabbir185/geopunch/internal/healthz"
-	"github.com/Sabbir185/geopunch/internal/user"
-	"github.com/Sabbir185/geopunch/pkg/response"
+	"github.com/Sabbir185/gpi/internal/country"
+	"github.com/Sabbir185/gpi/internal/healthz"
+	"github.com/Sabbir185/gpi/internal/user"
+	"github.com/Sabbir185/gpi/pkg/httpx"
 )
 
 func handleSideRequest(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path == "/" {
-		response.SendSuccess(w, http.StatusOK, "Welcome to the GeoPunch Connect API 🚀", nil)
+		httpx.SendSuccess(
+			w,
+			http.StatusOK,
+			httpx.CodeDataFetch,
+			"Welcome to the GPI Connect API 🚀",
+		)
 		return
 	}
 	// 404 Not Found
-	response.SendError(w, http.StatusNotFound, "The requested route was not found", nil)
+	httpx.SendError(
+		w,
+		http.StatusNotFound,
+		httpx.CodeBadRequest,
+		"The requested route was not found",
+		nil,
+	)
 }
 
 // RegisterRoutes will register all the routes

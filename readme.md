@@ -1,4 +1,4 @@
-#### GeoPunch — GeoPunch Connect
+#### GPI Connect — Connect Your People. Simplify Your Operations.
 
 Your daily activity solution
 - Smart Geo location based attendance

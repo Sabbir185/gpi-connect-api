@@ -1,10 +1,11 @@
-module github.com/Sabbir185/geopunch
+module github.com/Sabbir185/gpi
 
 go 1.27.0
 
 require (
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/golang-migrate/migrate/v4 v4.19.1
+	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.22.0

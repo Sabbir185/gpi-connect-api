@@ -3,7 +3,7 @@ package entity
 import (
 	"time"
 
-	"github.com/Sabbir185/geopunch/infra/db"
+	"github.com/Sabbir185/gpi/infra/db"
 )
 
 type Permission struct {
@@ -33,10 +33,10 @@ const (
 
 // Entity
 type Role struct {
-	ID          int64                   `db:"id"`
-	Name        UserRole                `db:"name"`
-	Scope       Scope                   `db:"scope"`
+	ID          int64                  `db:"id"`
+	Name        UserRole               `db:"name"`
+	Scope       Scope                  `db:"scope"`
 	Permissions db.JSONB[[]Permission] `db:"permissions"`
-	CreatedAt   time.Time               `db:"created_at"`
-	UpdatedAt   time.Time               `db:"updated_at"`
+	CreatedAt   time.Time              `db:"created_at"`
+	UpdatedAt   time.Time              `db:"updated_at"`
 }

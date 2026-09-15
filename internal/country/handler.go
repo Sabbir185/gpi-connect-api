@@ -5,8 +5,8 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Sabbir185/geopunch/pkg/response"
-	"github.com/Sabbir185/geopunch/pkg/validation"
+	"github.com/Sabbir185/gpi/pkg/httpx"
+	"github.com/Sabbir185/gpi/pkg/validation"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -28,9 +28,9 @@ func AddNewCountry(w http.ResponseWriter, r *http.Request) {
 	validate := validator.New()
 	if err := validate.Struct(body); err != nil {
 		formattedError := validation.FormatValidationErrors(err)
-		response.SendError(w, http.StatusBadRequest, "Validation Error", formattedError)
+		httpx.SendError(w, http.StatusBadRequest, httpx.CodeValidationError, "Validation Error", formattedError)
 		return
 	}
 	// service call
-	response.SendSuccess(w, http.StatusCreated, "Country added successfully", nil)
+	httpx.SendSuccess(w, http.StatusCreated, httpx.CodeDataCreated, "Country added successfully")
 }
