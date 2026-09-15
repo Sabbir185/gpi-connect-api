@@ -46,19 +46,19 @@ type JsonResponse struct {
 	Code    Code   `json:"code"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
-	Meta    Meta   `json:"meta,omitempty"`
+	Meta    *Meta  `json:"meta,omitempty"`
 	Error   any    `json:"error,omitempty"`
 }
 
 func SendSuccess(w http.ResponseWriter, statusCode int, code Code, message string, values ...any) {
 	var data any
-	var meta Meta
+	var meta *Meta
 	if len(values) > 0 {
 		data = values[0]
 	}
 	if len(values) > 1 {
 		if m, ok := values[1].(Meta); ok {
-			meta = m
+			meta = &m
 		}
 	}
 	w.Header().Set("Content-Type", "application/json")
