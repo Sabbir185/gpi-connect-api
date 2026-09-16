@@ -34,8 +34,12 @@ func main() {
 	log.Println("Connected to redis successfully")
 
 	// Register all the routes
-	multiplexer := http.NewServeMux()
-	mux := internal.RegisterRoutes(multiplexer)
+	deps := &internal.Dependencies{
+		Cnf:   cnf,
+		DB:    db,
+		Redis: redisClient,
+	}
+	mux := internal.RegisterRoutes(deps)
 
 	server := &http.Server{
 		Addr:         ":" + cnf.App.Port,
