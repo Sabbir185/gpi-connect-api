@@ -1,7 +1,19 @@
 package auth
 
-import "net/http"
+import (
+	"database/sql"
+	"net/http"
+)
 
-func Routes(mux *http.ServeMux) {
-	mux.HandleFunc("POST /auth/send-otp", SendRegistrationOTP)
+type Deps struct {
+	DB *sql.DB
+}
+
+func Routes(mux *http.ServeMux, deps *Deps) {
+	// dependencies
+	authRepo := NewAuthRepository(deps.DB)
+	authService := NewAuthService(authRepo)
+	handler := NewAuthHandler(authService)
+	// routes
+	mux.HandleFunc("POST /auth/send-otp", handler.SendRegistrationOTP)
 }

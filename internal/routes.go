@@ -47,7 +47,12 @@ func RegisterRoutes(deps *Dependencies) http.Handler {
 }
 
 func registerV1Routes(mux *http.ServeMux, deps *Dependencies) {
-	auth.Routes(mux)
+	auth.Routes(
+		mux,
+		&auth.Deps{
+			DB: deps.DB,
+		},
+	)
 	country.Routes(mux)
 	user.Routes(mux)
 }
