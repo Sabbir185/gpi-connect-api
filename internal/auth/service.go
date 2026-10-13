@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/Sabbir185/gpi/config"
@@ -32,14 +33,19 @@ func NewAuthService(authRepo AuthRepository, smsClient *smsnet.SMSClient, cnf *c
 }
 
 func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) (string, error) {
+	expireIn, err := strconv.Atoi(s.Cnf.SMSNet.ExpireInMin)
+	if err != nil {
+		expireIn = 2
+	}
 	otp := code.GenerateRandomOTP(6)
+
 	result, err := s.authRepo.CreateOTP(
 		ctx,
 		payload.Identity,
 		otp,
 		entity.OtpType(payload.Type),
 		entity.OtpChannelSMS,
-		1*time.Minute,
+		time.Minute * time.Duration(expireIn), // expire minutes dynamic
 	)
 	if err != nil {
 		return "", err
@@ -50,11 +56,11 @@ func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPR
 	if s.Cnf.App.Env == "development" {
 		return result.OTP, nil
 	}
-	
+
 	// real sms send for production
 	smsResponse, err := s.smsClient.SendOTP(ctx, &smsnet.SendSMSPayload{
 		To:  result.Identity,
-		Msg: fmt.Sprintf("Your verification OTP is: %s. It will expire in 1 minute.", otp),
+		Msg: fmt.Sprintf("Your verification OTP is: %s. It will expire in %d minute.", otp, expireIn),
 	})
 	if err != nil {
 		log.Printf("Failed to send OTP: %v", err)

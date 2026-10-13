@@ -19,11 +19,16 @@ type Database struct {
 	RedisUrl       string
 }
 
+type SMSNet struct {
+	APIKey      string
+	ExpireInMin string
+}
+
 // -------- Config --------
 type Config struct {
 	App    App
 	DB     Database
-	SmsNet string
+	SMSNet SMSNet
 }
 
 func LoadConfig() *Config {
@@ -43,7 +48,10 @@ func LoadConfig() *Config {
 			MigrationsPath: getEnv("DB_MIGRATIONS_PATH"),
 			RedisUrl:       getEnv("REDIS_URL"),
 		},
-		SmsNet: getEnv("SMS_NET_API_KEY"),
+		SMSNet: SMSNet{
+			APIKey:      getEnv("SMS_NET_API_KEY"),
+			ExpireInMin: getEnv("SMS_OTP_EXPIRE_IN_MIN"),
+		},
 	}
 }
 

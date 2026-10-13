@@ -34,7 +34,7 @@ func main() {
 	defer redisClient.Close()
 	log.Println("Connected to redis successfully")
 
-	smsClient := smsnet.NewSMSClient(cnf.SmsNet)
+	smsClient := smsnet.NewSMSClient(cnf.SMSNet.APIKey)
 	log.Println("Connected to smsClient successfully")
 
 	// Register all the routes
