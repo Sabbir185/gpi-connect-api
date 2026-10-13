@@ -30,7 +30,7 @@ func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request
 		httpx.SendError(w, http.StatusBadRequest, httpx.CodeValidationError, "Validation error", formattedError)
 		return
 	}
-	err := h.authService.SendOTP(&payload)
+	err := h.authService.SendOTP(r.Context(), &payload)
 	if err != nil {
 		httpx.SendError(w, http.StatusInternalServerError, httpx.CodeInternalError, "Internal server error", err)
 		return

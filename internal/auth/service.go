@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"context"
+	"log"
 	"time"
 
 	"github.com/Sabbir185/gpi/entity"
@@ -8,7 +10,7 @@ import (
 )
 
 type AuthService interface {
-	SendOTP(payload *SendRegistrationOTPRequest) error
+	SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) error
 	VerifyOTP(payload *VerifyOTPRequest) error
 }
 
@@ -20,9 +22,10 @@ func NewAuthService(authRepo AuthRepository) AuthService {
 	return &authService{authRepo: authRepo}
 }
 
-func (s *authService) SendOTP(payload *SendRegistrationOTPRequest) error {
+func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) error {
 	otp := code.GenerateRandomOTP(6)
-	err := s.authRepo.CreateOTP(
+	result, err := s.authRepo.CreateOTP(
+		ctx,
 		payload.Identity,
 		otp,
 		entity.OtpType(payload.Type),
@@ -32,6 +35,8 @@ func (s *authService) SendOTP(payload *SendRegistrationOTPRequest) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("OTP Created: %v", result)
+	// TODO: send otp via whatsapp or sms
 	return nil
 }
 
