@@ -56,12 +56,14 @@ func FormatValidationErrors(err error) map[string]string {
 				errMap[field] = fmt.Sprintf("%s must not match %s", field, param)
 			case "datetime":
 				errMap[field] = fmt.Sprintf("%s must match date format %s", field, param)
-			case "e164":
+			case "phone", "e164":
 				errMap[field] = fmt.Sprintf("%s must be a valid phone number with country code", field)
 			case "ip", "ipv4", "ipv6":
 				errMap[field] = fmt.Sprintf("%s must be a valid IP address", field)
 			case "boolean":
 				errMap[field] = fmt.Sprintf("%s must be a boolean value", field)
+			case "eq":
+				errMap[field] = fmt.Sprintf("%s must be equal to %s", field, param)
 			default:
 				errMap[field] = fmt.Sprintf("%s failed on '%s' validation", field, fieldErr.Tag())
 			}

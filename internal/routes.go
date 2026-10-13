@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Sabbir185/gpi/config"
+	"github.com/Sabbir185/gpi/internal/auth"
 	"github.com/Sabbir185/gpi/internal/country"
 	"github.com/Sabbir185/gpi/internal/healthz"
 	"github.com/Sabbir185/gpi/internal/middleware"
@@ -13,7 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const apiV1Prefix = "/api/v1"
+const apiV1Prefix = "/v1"
 
 type Dependencies struct {
 	Cnf   *config.Config
@@ -46,6 +47,7 @@ func RegisterRoutes(deps *Dependencies) http.Handler {
 }
 
 func registerV1Routes(mux *http.ServeMux, deps *Dependencies) {
+	auth.Routes(mux)
 	country.Routes(mux)
 	user.Routes(mux)
 }

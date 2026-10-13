@@ -30,6 +30,7 @@ const (
 	CodeUnauthorized    Code = "unauthorized"
 	CodeConflict        Code = "conflict"
 	CodeTooManyRequests Code = "too_many_requests"
+	CodeOTPSent         Code = "otp_sent"
 )
 
 type Meta struct {
