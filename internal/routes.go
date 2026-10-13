@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/Sabbir185/gpi/config"
+	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
 	"github.com/Sabbir185/gpi/internal/auth"
 	"github.com/Sabbir185/gpi/internal/country"
 	"github.com/Sabbir185/gpi/internal/healthz"
@@ -17,9 +18,10 @@ import (
 const apiV1Prefix = "/v1"
 
 type Dependencies struct {
-	Cnf   *config.Config
-	DB    *sql.DB
-	Redis *redis.Client
+	Cnf       *config.Config
+	DB        *sql.DB
+	Redis     *redis.Client
+	SMSClient *smsnet.SMSClient
 }
 
 func RegisterRoutes(deps *Dependencies) http.Handler {
@@ -50,7 +52,9 @@ func registerV1Routes(mux *http.ServeMux, deps *Dependencies) {
 	auth.Routes(
 		mux,
 		&auth.Deps{
-			DB: deps.DB,
+			DB:        deps.DB,
+			SMSClient: deps.SMSClient,
+			Cnf:       deps.Cnf,
 		},
 	)
 	country.Routes(mux)

@@ -21,8 +21,9 @@ type Database struct {
 
 // -------- Config --------
 type Config struct {
-	App App
-	DB  Database
+	App    App
+	DB     Database
+	SmsNet string
 }
 
 func LoadConfig() *Config {
@@ -42,6 +43,7 @@ func LoadConfig() *Config {
 			MigrationsPath: getEnv("DB_MIGRATIONS_PATH"),
 			RedisUrl:       getEnv("REDIS_URL"),
 		},
+		SmsNet: getEnv("SMS_NET_API_KEY"),
 	}
 }
 

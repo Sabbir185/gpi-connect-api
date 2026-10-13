@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/Sabbir185/gpi/config"
 	"github.com/Sabbir185/gpi/pkg/httpx"
 	"github.com/Sabbir185/gpi/pkg/validation"
 	"github.com/go-playground/validator/v10"
@@ -11,10 +12,11 @@ import (
 
 type authHandler struct {
 	authService AuthService
+	Cnf         *config.Config
 }
 
-func NewAuthHandler(authService AuthService) *authHandler {
-	return &authHandler{authService: authService}
+func NewAuthHandler(authService AuthService, cnf *config.Config) *authHandler {
+	return &authHandler{authService: authService, Cnf: cnf}
 }
 
 func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request) {
@@ -30,10 +32,24 @@ func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request
 		httpx.SendError(w, http.StatusBadRequest, httpx.CodeValidationError, "Validation error", formattedError)
 		return
 	}
-	err := h.authService.SendOTP(r.Context(), &payload)
+	otp, err := h.authService.SendOTP(r.Context(), &payload)
 	if err != nil {
 		httpx.SendError(w, http.StatusInternalServerError, httpx.CodeInternalError, "Internal server error", err)
 		return
 	}
-	httpx.SendSuccess(w, http.StatusOK, httpx.CodeOTPSent, "OTP sent successfully")
+
+	// if development, send otp in response
+	var data = make(map[string]string)
+	if h.Cnf.App.Env == "development" {
+		data["otp"] = otp
+		data["env"] = h.Cnf.App.Env
+	}
+	
+	httpx.SendSuccess(
+		w,
+		http.StatusOK,
+		httpx.CodeOTPSent,
+		"OTP sent successfully",
+		data,
+	)
 }

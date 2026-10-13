@@ -12,6 +12,7 @@ import (
 
 	"github.com/Sabbir185/gpi/config"
 	"github.com/Sabbir185/gpi/infra/db"
+	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
 	"github.com/Sabbir185/gpi/infra/redis"
 	"github.com/Sabbir185/gpi/internal"
 )
@@ -33,11 +34,15 @@ func main() {
 	defer redisClient.Close()
 	log.Println("Connected to redis successfully")
 
+	smsClient := smsnet.NewSMSClient(cnf.SmsNet)
+	log.Println("Connected to smsClient successfully")
+
 	// Register all the routes
 	deps := &internal.Dependencies{
-		Cnf:   cnf,
-		DB:    db,
-		Redis: redisClient,
+		Cnf:       cnf,
+		DB:        db,
+		Redis:     redisClient,
+		SMSClient: smsClient,
 	}
 	mux := internal.RegisterRoutes(deps)
 

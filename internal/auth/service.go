@@ -2,27 +2,36 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"time"
 
+	"github.com/Sabbir185/gpi/config"
 	"github.com/Sabbir185/gpi/entity"
+	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
 	"github.com/Sabbir185/gpi/pkg/code"
 )
 
 type AuthService interface {
-	SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) error
+	SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) (string, error)
 	VerifyOTP(payload *VerifyOTPRequest) error
 }
 
 type authService struct {
-	authRepo AuthRepository
+	authRepo  AuthRepository
+	smsClient *smsnet.SMSClient
+	Cnf       *config.Config
 }
 
-func NewAuthService(authRepo AuthRepository) AuthService {
-	return &authService{authRepo: authRepo}
+func NewAuthService(authRepo AuthRepository, smsClient *smsnet.SMSClient, cnf *config.Config) AuthService {
+	return &authService{
+		authRepo:  authRepo,
+		smsClient: smsClient,
+		Cnf:       cnf,
+	}
 }
 
-func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) error {
+func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) (string, error) {
 	otp := code.GenerateRandomOTP(6)
 	result, err := s.authRepo.CreateOTP(
 		ctx,
@@ -33,11 +42,26 @@ func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPR
 		1*time.Minute,
 	)
 	if err != nil {
-		return err
+		return "", err
 	}
 	log.Printf("OTP Created: %v", result)
-	// TODO: send otp via whatsapp or sms
-	return nil
+
+	// if development, send otp in response
+	if s.Cnf.App.Env == "development" {
+		return result.OTP, nil
+	}
+	
+	// real sms send for production
+	smsResponse, err := s.smsClient.SendOTP(ctx, &smsnet.SendSMSPayload{
+		To:  result.Identity,
+		Msg: fmt.Sprintf("Your verification OTP is: %s. It will expire in 1 minute.", otp),
+	})
+	if err != nil {
+		log.Printf("Failed to send OTP: %v", err)
+		return "", err
+	}
+	log.Printf("OTP Sent: %v", smsResponse)
+	return "", nil
 }
 
 func (s *authService) VerifyOTP(payload *VerifyOTPRequest) error {
