@@ -11,5 +11,4 @@ CREATE TABLE IF NOT EXISTS countries (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_countries_code ON countries(code);
 CREATE INDEX IF NOT EXISTS idx_countries_status ON countries(status);

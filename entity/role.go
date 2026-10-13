@@ -14,13 +14,13 @@ type Permission struct {
 	Action      string `db:"action" json:"action"`
 }
 
-type UserRole string
+type RoleName string
 
 const (
-	UserRoleSuperAdmin UserRole = "super_admin"
-	UserRoleStaff      UserRole = "staff"
-	UserRoleAdmin      UserRole = "admin"
-	UserRoleUser       UserRole = "user"
+	RoleNameSuperAdmin RoleName = "super_admin"
+	RoleNameStaff      RoleName = "staff"
+	RoleNameAdmin      RoleName = "admin"
+	RoleNameUser       RoleName = "user"
 )
 
 type Scope string
@@ -34,7 +34,7 @@ const (
 // Entity
 type Role struct {
 	ID          int64                  `db:"id"`
-	Name        UserRole               `db:"name"`
+	Name        RoleName               `db:"name"`
 	Scope       Scope                  `db:"scope"`
 	Permissions db.JSONB[[]Permission] `db:"permissions"`
 	CreatedAt   time.Time              `db:"created_at"`

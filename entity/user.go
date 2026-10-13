@@ -13,6 +13,13 @@ const (
 	UserStatusDeleted   UserStatus = "deleted"
 )
 
+type UserRole string
+
+const (
+	UserRoleAdmin   UserRole = "admin"
+	UserRoleUser    UserRole = "user"
+)
+
 // Entity
 type User struct {
 	ID             int64      `db:"id"`
@@ -27,8 +34,8 @@ type User struct {
 	CountryID      int64      `db:"country_id"`
 	Country        *Country   `db:"-"`
 	PostCode       string     `db:"post_code"`
-	RoleID         int64      `db:"role_id"`
-	Role           *Role      `db:"-"`
+	Role           UserRole   `db:"role"`
+	FCMToken       *string    `db:"fcm_token"`
 	CreatedAt      time.Time  `db:"created_at"`
 	UpdatedAt      time.Time  `db:"updated_at"`
 	DeletedAt      *time.Time `db:"deleted_at"`
