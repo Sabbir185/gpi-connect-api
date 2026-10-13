@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/Sabbir185/gpi/entity"
@@ -10,7 +11,7 @@ import (
 
 type AuthRepository interface {
 	CreateOTP(ctx context.Context, identity string, otp string, OtpType entity.OtpType, OtpChannel entity.OtpChannel, ttl time.Duration) (*entity.Otp, error)
-	FindOTPByIdentityAndType(identity string, OtpType entity.OtpType) (*entity.Otp, error)
+	FindOTPByIdentityAndType(ctx context.Context, identity string, OtpType entity.OtpType) (*entity.Otp, error)
 }
 
 type authRepository struct {
@@ -50,6 +51,33 @@ func (s *authRepository) CreateOTP(ctx context.Context, identity string, otp str
 	return &result, nil
 }
 
-func (s *authRepository) FindOTPByIdentityAndType(identity string, OtpType entity.OtpType) (*entity.Otp, error) {
-	return nil, nil
+func (s *authRepository) FindOTPByIdentityAndType(ctx context.Context, identity string, OtpType entity.OtpType) (*entity.Otp, error) {
+	query := `
+		SELECT id, identity, otp, type, channel, attempt, expires_at, created_at, updated_at
+		FROM otps 
+		WHERE identity = $1 
+		  AND type = $2 
+		  AND expires_at > NOW()
+		ORDER BY created_at DESC 
+		LIMIT 1;
+	`
+	var result entity.Otp
+	err := s.db.QueryRowContext(ctx, query, identity, OtpType).Scan(
+		&result.ID,
+		&result.Identity,
+		&result.OTP,
+		&result.Type,
+		&result.Channel,
+		&result.Attempt,
+		&result.ExpiresAt,
+		&result.CreatedAt,
+		&result.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &result, nil
 }

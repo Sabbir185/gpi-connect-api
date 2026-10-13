@@ -2,6 +2,7 @@ package auth
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/Sabbir185/gpi/config"
@@ -22,7 +23,7 @@ func NewAuthHandler(authService AuthService, cnf *config.Config) *authHandler {
 func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request) {
 	var payload SendRegistrationOTPRequest
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		httpx.SendError(w, http.StatusBadRequest, httpx.CodeInvalidRequest, "Invalid request", err)
+		httpx.SendError(w, http.StatusBadRequest, httpx.CodeInvalidRequest, "Invalid request", err.Error())
 		return
 	}
 	validate := validator.New()
@@ -34,17 +35,30 @@ func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request
 	}
 	otp, err := h.authService.SendOTP(r.Context(), &payload)
 	if err != nil {
-		httpx.SendError(w, http.StatusInternalServerError, httpx.CodeInternalError, "Internal server error", err)
+		var appErr *httpx.AppError
+		if errors.As(err, &appErr) {
+			// generic error
+			var data any
+			if h.Cnf.App.Env == "development" {
+				data = appErr.Data
+			}
+			httpx.SendError(w, appErr.StatusCode, appErr.Code, appErr.Message, data)
+			return
+		}
+		// fallback
+		httpx.SendError(w, http.StatusInternalServerError, httpx.CodeInternalError, "Internal server error", err.Error())
 		return
 	}
 
 	// if development, send otp in response
-	var data = make(map[string]string)
+	var data any
 	if h.Cnf.App.Env == "development" {
-		data["otp"] = otp
-		data["env"] = h.Cnf.App.Env
+		data = map[string]string{
+			"otp": otp,
+			"env": h.Cnf.App.Env,
+		}
 	}
-	
+
 	httpx.SendSuccess(
 		w,
 		http.StatusOK,

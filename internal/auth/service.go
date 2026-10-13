@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/Sabbir185/gpi/entity"
 	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
 	"github.com/Sabbir185/gpi/pkg/code"
+	"github.com/Sabbir185/gpi/pkg/httpx"
 )
 
 type AuthService interface {
@@ -33,24 +35,41 @@ func NewAuthService(authRepo AuthRepository, smsClient *smsnet.SMSClient, cnf *c
 }
 
 func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) (string, error) {
+	// check otp already sent or not
+	otp, err := s.authRepo.FindOTPByIdentityAndType(ctx, payload.Identity, entity.OtpType(payload.Type))
+	if err != nil {
+		fmt.Printf("%v", err)
+	}
+	if otp != nil {
+		return "", httpx.NewAppError(
+			http.StatusTooManyRequests,
+			httpx.CodeTooManyRequests,
+			"OTP already sent. Please try again later.",
+			map[string]string{
+				"otp": otp.OTP,
+				"env": s.Cnf.App.Env,
+			},
+		)
+	}
+
+	// Generate new OTP and sending
 	expireIn, err := strconv.Atoi(s.Cnf.SMSNet.ExpireInMin)
 	if err != nil {
 		expireIn = 2
 	}
-	otp := code.GenerateRandomOTP(6)
+	otpStr := code.GenerateRandomNumber(6)
 
 	result, err := s.authRepo.CreateOTP(
 		ctx,
 		payload.Identity,
-		otp,
+		otpStr,
 		entity.OtpType(payload.Type),
 		entity.OtpChannelSMS,
-		time.Minute * time.Duration(expireIn), // expire minutes dynamic
+		time.Minute*time.Duration(expireIn), // expire minutes dynamic
 	)
 	if err != nil {
 		return "", err
 	}
-	log.Printf("OTP Created: %v", result)
 
 	// if development, send otp in response
 	if s.Cnf.App.Env == "development" {
@@ -58,15 +77,14 @@ func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPR
 	}
 
 	// real sms send for production
-	smsResponse, err := s.smsClient.SendOTP(ctx, &smsnet.SendSMSPayload{
+	_, err = s.smsClient.SendOTP(ctx, &smsnet.SendSMSPayload{
 		To:  result.Identity,
-		Msg: fmt.Sprintf("Your verification OTP is: %s. It will expire in %d minute.", otp, expireIn),
+		Msg: fmt.Sprintf("Your verification OTP is: %s. It will expire in %d minute.", otpStr, expireIn),
 	})
 	if err != nil {
 		log.Printf("Failed to send OTP: %v", err)
 		return "", err
 	}
-	log.Printf("OTP Sent: %v", smsResponse)
 	return "", nil
 }
 

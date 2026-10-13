@@ -5,6 +5,26 @@ import (
 	"net/http"
 )
 
+type AppError struct {
+	StatusCode int
+	Code       Code
+	Message    string
+	Data       any
+}
+
+func (e *AppError) Error() string {
+	return e.Message
+}
+
+func NewAppError(statusCode int, code Code, message string, data any) *AppError {
+	return &AppError{
+		StatusCode: statusCode,
+		Code:       code,
+		Message:    message,
+		Data:       data,
+	}
+}
+
 type Status string
 
 const (
