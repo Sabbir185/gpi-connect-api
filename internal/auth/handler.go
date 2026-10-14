@@ -67,3 +67,40 @@ func (h *authHandler) SendRegistrationOTP(w http.ResponseWriter, r *http.Request
 		data,
 	)
 }
+
+func (h *authHandler) VerifyRegistrationOTP(w http.ResponseWriter, r *http.Request) {
+	var payload *VerifyOTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		httpx.SendError(w, http.StatusBadRequest, httpx.CodeInvalidRequest, "Invalid request", err.Error())
+		return
+	}
+
+	validate := validator.New()
+	_ = validate.RegisterValidation("phone", validation.ValidateGlobalPhone)
+	if err := validate.Struct(payload); err != nil {
+		formattedError := validation.FormatValidationErrors(err)
+		httpx.SendError(w, http.StatusBadRequest, httpx.CodeValidationError, "Validation error", formattedError)
+		return
+	}
+
+	// Handover to AuthService
+	result, err := h.authService.VerifyRegistrationOTP(r.Context(), payload)
+	if err != nil {
+		var appErr *httpx.AppError
+		if errors.As(err, &appErr) {
+			httpx.SendError(w, appErr.StatusCode, appErr.Code, appErr.Message, appErr.Data)
+			return
+		}
+		// fallback
+		httpx.SendError(w, http.StatusInternalServerError, httpx.CodeInternalError, "Internal server error", err.Error())
+		return
+	}
+
+	httpx.SendSuccess(
+		w,
+		http.StatusOK,
+		httpx.CodeVerified,
+		"User verified successfully",
+		result,
+	)
+}

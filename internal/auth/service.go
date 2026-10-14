@@ -17,7 +17,7 @@ import (
 
 type AuthService interface {
 	SendOTP(ctx context.Context, payload *SendRegistrationOTPRequest) (string, error)
-	VerifyOTP(payload *VerifyOTPRequest) error
+	VerifyRegistrationOTP(ctx context.Context, payload *VerifyOTPRequest) (any, error)
 }
 
 type authService struct {
@@ -88,6 +88,12 @@ func (s *authService) SendOTP(ctx context.Context, payload *SendRegistrationOTPR
 	return "", nil
 }
 
-func (s *authService) VerifyOTP(payload *VerifyOTPRequest) error {
-	return nil
+func (s *authService) VerifyRegistrationOTP(ctx context.Context, payload *VerifyOTPRequest) (any, error) {
+	// check otp already expired or exits
+	// verify otp
+	// if user already exists, return error
+	// if user doesn't exist, create user
+	// if otp is valid, create user -- phone, fcm_token, verified_at, status etc
+	// then return user and access token and refresh token
+	return "", nil
 }
