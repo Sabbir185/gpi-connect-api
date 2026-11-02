@@ -46,3 +46,45 @@ Mobile apps sign in with a phone OTP (SMS) or Google through Firebase. Either wa
 - **Refresh token:** 32 random bytes, stored only as a SHA-256 hash, one session per app install. Each refresh rotates it. Reusing a rotated token after a 60s grace window revokes the whole session.
 - **OTP:** stored as an HMAC digest bound to the phone number, single use, 5 attempts per code.
 - New accounts get a welcome push and, when an email is known, a welcome email, both queued so sign-in never waits on them.
+
+
+#### Deployment (CI/CD)
+`.github/workflows/ci-cd.yml` checks formatting, vets, builds and tests every push and pull request to `main` and `dev`. A push to `main` that passes is deployed: the workflow connects over SSH, checks out that exact commit on the server and runs `deploy/deploy.sh`, which downloads dependencies, builds `api`, `worker` and `migrate`, runs migrations and restarts both services. If `/healthz` doesn't answer within 15s, the previous binaries come back. Migrations are not rolled back, so keep each one compatible with the previous release.
+
+One-time server setup (Ubuntu, as root; adjust the user and path to taste):
+```bash
+# Go (same version as go.mod), git and curl
+apt-get install -y git curl
+curl -fsSL https://go.dev/dl/go1.27.0.linux-amd64.tar.gz | tar -C /usr/local -xz
+
+# App user with a read-only GitHub deploy key (repo → Settings → Deploy keys)
+useradd --system --create-home --shell /bin/bash gpi
+sudo -u gpi ssh-keygen -t ed25519 -N "" -f /home/gpi/.ssh/id_ed25519   # add the .pub as a deploy key
+sudo -u gpi git clone git@github.com:Sabbir185/gpi-connect-api.git /opt/gpi-connect-api  # create /opt/gpi-connect-api owned by gpi first
+
+# Production config, readable only by the app user
+sudo -u gpi cp /opt/gpi-connect-api/.env.example /opt/gpi-connect-api/.env   # fill in, ENV="production"
+chmod 600 /opt/gpi-connect-api/.env
+
+# Services, and permission for the deploy to restart them
+cp /opt/gpi-connect-api/deploy/gpi-*.service /etc/systemd/system/
+systemctl daemon-reload && systemctl enable gpi-api gpi-worker
+echo 'gpi ALL=(root) NOPASSWD: /usr/bin/systemctl restart gpi-api, /usr/bin/systemctl restart gpi-worker' > /etc/sudoers.d/gpi-deploy
+
+# Key GitHub Actions logs in with: put the private key in DEPLOY_SSH_KEY
+ssh-keygen -t ed25519 -N "" -C github-actions -f gh_deploy && cat gh_deploy.pub >> /home/gpi/.ssh/authorized_keys
+```
+Then run the first deploy by hand: `sudo -u gpi bash /opt/gpi-connect-api/deploy/deploy.sh`.
+
+GitHub → repo Settings → Environments → `production`:
+
+| Name | Kind | Value |
+|---|---|---|
+| `DEPLOY_HOST` | secret | Server IP or hostname |
+| `DEPLOY_USER` | secret | `gpi` |
+| `DEPLOY_PORT` | secret | SSH port, optional (default 22) |
+| `DEPLOY_SSH_KEY` | secret | Private key whose public half is in `authorized_keys` |
+| `DEPLOY_KNOWN_HOSTS` | secret | Output of `ssh-keyscan -p <port> <host>`, so the server's identity is verified |
+| `DEPLOY_PATH` | variable | `/opt/gpi-connect-api` |
+
+App secrets (database, JWT, Firebase, SMS, Brevo) stay in the server's `.env` and never pass through GitHub.

@@ -1,0 +1,20 @@
+[Unit]
+Description=GPI Connect background worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=gpi
+WorkingDirectory=/opt/gpi-connect-api
+ExecStart=/opt/gpi-connect-api/bin/worker
+Restart=always
+RestartSec=3
+KillSignal=SIGTERM
+# Lets in-flight jobs (emails, pushes) finish before the stop is forced.
+TimeoutStopSec=30
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
