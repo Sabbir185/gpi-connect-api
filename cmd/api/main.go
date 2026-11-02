@@ -12,9 +12,12 @@ import (
 
 	"github.com/Sabbir185/gpi/config"
 	"github.com/Sabbir185/gpi/infra/db"
+	"github.com/Sabbir185/gpi/infra/firebase"
 	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
+	"github.com/Sabbir185/gpi/infra/queue"
 	"github.com/Sabbir185/gpi/infra/redis"
 	"github.com/Sabbir185/gpi/internal"
+	"github.com/Sabbir185/gpi/pkg/token"
 )
 
 func main() {
@@ -37,12 +40,24 @@ func main() {
 	smsClient := smsnet.NewSMSClient(cnf.SMSNet.APIKey)
 	log.Println("Connected to smsClient successfully")
 
+	firebaseClient, err := firebase.NewClient(context.Background(), cnf.Firebase.CredentialsBase64)
+	if err != nil {
+		log.Fatalf("Failed to init firebase: %v", err)
+	}
+	log.Println("Connected to firebase successfully")
+
+	producer := queue.NewProducer(cnf.DB.RedisUrl)
+	defer producer.Close()
+
 	// Register all the routes
 	deps := &internal.Dependencies{
 		Cnf:       cnf,
 		DB:        db,
 		Redis:     redisClient,
 		SMSClient: smsClient,
+		Verifier:  firebaseClient.Auth,
+		Tokens:    token.NewManager(cnf.Auth.JWTSecret, cnf.App.Name, cnf.Auth.AccessTokenTTL),
+		Queue:     producer,
 	}
 	mux := internal.RegisterRoutes(deps)
 

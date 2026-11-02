@@ -8,10 +8,12 @@ import (
 	smsnet "github.com/Sabbir185/gpi/infra/message/sms_net"
 	"github.com/Sabbir185/gpi/internal/auth"
 	"github.com/Sabbir185/gpi/internal/country"
+	"github.com/Sabbir185/gpi/internal/designation"
 	"github.com/Sabbir185/gpi/internal/healthz"
 	"github.com/Sabbir185/gpi/internal/middleware"
 	"github.com/Sabbir185/gpi/internal/user"
 	"github.com/Sabbir185/gpi/pkg/httpx"
+	"github.com/Sabbir185/gpi/pkg/token"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -22,6 +24,9 @@ type Dependencies struct {
 	DB        *sql.DB
 	Redis     *redis.Client
 	SMSClient *smsnet.SMSClient
+	Verifier  auth.IDTokenVerifier
+	Tokens    *token.Manager
+	Queue     auth.WelcomeQueue
 }
 
 func RegisterRoutes(deps *Dependencies) http.Handler {
@@ -49,16 +54,35 @@ func RegisterRoutes(deps *Dependencies) http.Handler {
 }
 
 func registerV1Routes(mux *http.ServeMux, deps *Dependencies) {
+	authenticate := middleware.Authenticate(deps.Tokens, auth.NewAuthRepository(deps.DB))
+
 	auth.Routes(
 		mux,
 		&auth.Deps{
-			DB:        deps.DB,
-			SMSClient: deps.SMSClient,
-			Cnf:       deps.Cnf,
+			DB:           deps.DB,
+			SMSClient:    deps.SMSClient,
+			Verifier:     deps.Verifier,
+			Tokens:       deps.Tokens,
+			Queue:        deps.Queue,
+			Authenticate: authenticate,
+			Cnf:          deps.Cnf,
 		},
 	)
 	country.Routes(mux)
-	user.Routes(mux)
+	designation.Routes(
+		mux,
+		&designation.Deps{
+			DB:           deps.DB,
+			Authenticate: authenticate,
+		},
+	)
+	user.Routes(
+		mux,
+		&user.Deps{
+			DB:           deps.DB,
+			Authenticate: authenticate,
+		},
+	)
 }
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {

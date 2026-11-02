@@ -44,7 +44,7 @@ func (c *SMSClient) SendOTP(ctx context.Context, payload *SendSMSPayload) (*Send
 	formData := url.Values{}
 	formData.Set("api_key", c.apiKey)
 	formData.Set("msg", payload.Msg)
-	formData.Set("to", payload.To)
+	formData.Set("to", strings.TrimPrefix(payload.To, "+"))
 
 	// create http POST request with context
 	req, err := http.NewRequestWithContext(

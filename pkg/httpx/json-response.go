@@ -49,9 +49,16 @@ const (
 	CodeForbidden       Code = "forbidden"
 	CodeUnauthorized    Code = "unauthorized"
 	CodeConflict        Code = "conflict"
-	CodeTooManyRequests Code = "too_many_requests"
+	CodeRateLimited     Code = "rate_limited"
 	CodeOTPSent         Code = "otp_sent"
 	CodeVerified        Code = "verified"
+	CodeInvalidPhone    Code = "invalid_phone"
+	CodeInvalidOTP      Code = "invalid_otp"
+	CodeOTPExpired      Code = "otp_expired"
+	CodeGoogleFailed    Code = "google_failed"
+	CodeSignedIn        Code = "signed_in"
+	CodeSignedOut       Code = "signed_out"
+	CodeTokenRefreshed  Code = "token_refreshed"
 )
 
 type Meta struct {
