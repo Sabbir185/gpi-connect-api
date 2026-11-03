@@ -1,6 +1,8 @@
 package config
 
 import (
+	"errors"
+	"io/fs"
 	"log"
 	"os"
 	"strconv"
@@ -57,9 +59,9 @@ type Config struct {
 const minSecretLength = 32
 
 func LoadConfig() *Config {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// Containers get their variables from the environment, so a missing .env is fine.
+	if err := godotenv.Load(); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
 	cnf := &Config{

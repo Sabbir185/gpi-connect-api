@@ -48,43 +48,36 @@ Mobile apps sign in with a phone OTP (SMS) or Google through Firebase. Either wa
 - New accounts get a welcome push and, when an email is known, a welcome email, both queued so sign-in never waits on them.
 
 
-#### Deployment (CI/CD)
-`.github/workflows/ci-cd.yml` checks formatting, vets, builds and tests every push and pull request to `main` and `dev`. A push to `main` that passes is deployed: the workflow connects over SSH, checks out that exact commit on the server and runs `deploy/deploy.sh`, which downloads dependencies, builds `api`, `worker` and `migrate`, runs migrations and restarts both services. If `/healthz` doesn't answer within 15s, the previous binaries come back. Migrations are not rolled back, so keep each one compatible with the previous release.
-
-One-time server setup (Ubuntu, as root; adjust the user and path to taste):
+#### Docker
+One image holds the `api`, `worker` and `migrate` binaries. `compose.yaml` runs Redis, applies migrations, then starts the API and the worker, restarts them if they crash or the server reboots, and rotates their logs. Configuration comes from `.env`.
 ```bash
-# Go (same version as go.mod), git and curl
-apt-get install -y git curl
-curl -fsSL https://go.dev/dl/go1.27.0.linux-amd64.tar.gz | tar -C /usr/local -xz
-
-# App user with a read-only GitHub deploy key (repo → Settings → Deploy keys)
-useradd --system --create-home --shell /bin/bash gpi
-sudo -u gpi ssh-keygen -t ed25519 -N "" -f /home/gpi/.ssh/id_ed25519   # add the .pub as a deploy key
-sudo -u gpi git clone git@github.com:Sabbir185/gpi-connect-api.git /opt/gpi-connect-api  # create /opt/gpi-connect-api owned by gpi first
-
-# Production config, readable only by the app user
-sudo -u gpi cp /opt/gpi-connect-api/.env.example /opt/gpi-connect-api/.env   # fill in, ENV="production"
-chmod 600 /opt/gpi-connect-api/.env
-
-# Services, and permission for the deploy to restart them
-cp /opt/gpi-connect-api/deploy/gpi-*.service /etc/systemd/system/
-systemctl daemon-reload && systemctl enable gpi-api gpi-worker
-echo 'gpi ALL=(root) NOPASSWD: /usr/bin/systemctl restart gpi-api, /usr/bin/systemctl restart gpi-worker' > /etc/sudoers.d/gpi-deploy
-
-# Key GitHub Actions logs in with: put the private key in DEPLOY_SSH_KEY
-ssh-keygen -t ed25519 -N "" -C github-actions -f gh_deploy && cat gh_deploy.pub >> /home/gpi/.ssh/authorized_keys
+docker build -t ghcr.io/sabbir185/gpi-connect-api .   # local image
+docker compose up -d                                  # start everything
+docker compose logs -f api worker
+docker compose down
 ```
-Then run the first deploy by hand: `sudo -u gpi bash /opt/gpi-connect-api/deploy/deploy.sh`.
+The API listens on `127.0.0.1:${PORT}`; put a reverse proxy (e.g. Caddy) in front of it for HTTPS.
 
-GitHub → repo Settings → Environments → `production`:
+
+#### Deployment
+On every push and pull request to `main` and `dev`, GitHub Actions checks formatting, vets and tests. On a push to `main` it then builds the image, pushes it to GitHub Container Registry (tagged with the commit and `latest`), copies `compose.yaml` to the server and runs `docker compose pull && docker compose up -d`. To roll back, re-run an earlier deploy from the Actions tab.
+
+Server setup, once (Ubuntu):
+```bash
+curl -fsSL https://get.docker.com | sh            # Docker, starts on boot
+useradd -m -s /bin/bash -G docker gpi             # deploy user
+install -d -o gpi -g gpi /opt/gpi-connect-api     # put the production .env here (chmod 600)
+```
+Create an SSH key pair for GitHub Actions and add the public key to `/home/gpi/.ssh/authorized_keys`.
+
+GitHub → Settings → Environments → `production`:
 
 | Name | Kind | Value |
 |---|---|---|
 | `DEPLOY_HOST` | secret | Server IP or hostname |
 | `DEPLOY_USER` | secret | `gpi` |
-| `DEPLOY_PORT` | secret | SSH port, optional (default 22) |
-| `DEPLOY_SSH_KEY` | secret | Private key whose public half is in `authorized_keys` |
-| `DEPLOY_KNOWN_HOSTS` | secret | Output of `ssh-keyscan -p <port> <host>`, so the server's identity is verified |
+| `DEPLOY_SSH_KEY` | secret | The private key |
+| `DEPLOY_KNOWN_HOSTS` | secret | Output of `ssh-keyscan <host>` |
 | `DEPLOY_PATH` | variable | `/opt/gpi-connect-api` |
 
-App secrets (database, JWT, Firebase, SMS, Brevo) stay in the server's `.env` and never pass through GitHub.
+App secrets stay in the server's `.env`.

@@ -6,67 +6,66 @@ on:
   pull_request:
     branches: [main, dev]
 
-permissions:
-  contents: read
+env:
+  IMAGE: ghcr.io/sabbir185/gpi-connect-api
 
 jobs:
   check:
-    name: Build and vet
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-
-      - name: Verify dependencies
-        run: |
-          go mod download
-          go mod verify
-
-      - name: Check formatting
-        run: test -z "$(gofmt -l .)" || (gofmt -l . && exit 1)
-
+      - name: Format
+        run: test -z "$(gofmt -l .)"
       - name: Vet
         run: go vet ./...
-
-      - name: Build
-        run: |
-          go build -o /dev/null ./cmd/api
-          go build -o /dev/null ./cmd/worker
-          go build -o /dev/null ./cmd/migrate
-
       - name: Test
         run: go test ./...
 
   deploy:
-    name: Deploy to production
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment: production
-    # A newer push waits for the running deploy instead of racing it.
-    concurrency:
-      group: production
-      cancel-in-progress: false
+    concurrency: production
+    permissions:
+      contents: read
+      packages: write
+    env:
+      TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+      APP_DIR: ${{ vars.DEPLOY_PATH }}
+      TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - name: Configure SSH
+      - uses: actions/checkout@v4
+
+      - name: Build and push image
+        run: |
+          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          docker build --label org.opencontainers.image.source="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
+            -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
+          docker push --all-tags "$IMAGE"
+
+      - name: Set up SSH
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
         run: |
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          echo "$SSH_KEY" > ~/.ssh/id_ed25519
+          echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519
 
-      - name: Pull, build, migrate and restart on the server
-        env:
-          HOST: ${{ secrets.DEPLOY_HOST }}
-          USER: ${{ secrets.DEPLOY_USER }}
-          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
-          APP_DIR: ${{ vars.DEPLOY_PATH }}
+      - name: Deploy
         run: |
-          ssh -i ~/.ssh/deploy_key -p "$PORT" -o StrictHostKeyChecking=yes "$USER@$HOST" \
-            "set -e; cd '$APP_DIR'; git fetch --quiet origin main; git reset --hard '$GITHUB_SHA'; bash deploy/deploy.sh"
+          scp compose.yaml "$TARGET:$APP_DIR/compose.yaml"
+          echo "$TOKEN" | ssh "$TARGET" docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          # shellcheck disable=SC2029
+          ssh "$TARGET" "cd '$APP_DIR' && docker compose pull --quiet && docker compose up -d --wait --remove-orphans && docker image prune -f"
+
+      - name: Log out of the registry
+        if: always()
+        run: ssh "$TARGET" docker logout ghcr.io || true

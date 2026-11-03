@@ -1,0 +1,71 @@
+name: gpi
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: 10m
+    max-file: "3"
+
+x-app: &app
+  image: ghcr.io/sabbir185/gpi-connect-api:${TAG:-latest}
+  env_file: .env
+  environment:
+    REDIS_URL: redis:6379
+  restart: unless-stopped
+  logging: *logging
+
+services:
+  redis:
+    image: redis:7.4-alpine
+    container_name: gpi-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    <<: *app
+    container_name: gpi-migrate
+    command: ["/app/bin/migrate", "up"]
+    restart: "no"
+    healthcheck:
+      disable: true
+
+  api:
+    <<: *app
+    container_name: gpi-api
+    command: ["/app/bin/api"]
+    ports:
+      - "127.0.0.1:${PORT:?set PORT in .env}:${PORT:?set PORT in .env}"
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    <<: *app
+    container_name: gpi-worker
+    command: ["/app/bin/worker"]
+    stop_grace_period: 30s
+    healthcheck:
+      disable: true
+    depends_on:
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+networks:
+  default:
+    name: gpi-network
+
+volumes:
+  redis-data:
+    name: gpi-redis-data
