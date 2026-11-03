@@ -30,15 +30,9 @@ jobs:
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    environment: production
-    concurrency: production
     permissions:
       contents: read
       packages: write
-    env:
-      TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
-      APP_DIR: ${{ vars.DEPLOY_PATH }}
-      TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -47,31 +41,22 @@ jobs:
 
       - name: Build and push image
         run: |
-          echo "$TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
           docker buildx build --push \
             --label org.opencontainers.image.source="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" \
-            -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" \
+            -t "$IMAGE:latest" \
+            -t "$IMAGE:$GITHUB_SHA" \
             --cache-from type=gha \
             --cache-to type=gha,mode=max .
 
-      - name: Set up SSH
+      - name: Trigger Dokploy Deployment
         env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          WEBHOOK_URL: ${{ secrets.DOKPLOY_WEBHOOK_URL }}
         run: |
-          install -m 700 -d ~/.ssh
-          echo "$SSH_KEY" > ~/.ssh/id_ed25519
-          echo "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Deploy
-        run: |
-          ssh "$TARGET" "mkdir -p '$APP_DIR'"
-          scp compose.yaml "$TARGET:$APP_DIR/compose.yaml"
-          echo "$TOKEN" | ssh "$TARGET" docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
-          # shellcheck disable=SC2029
-          ssh "$TARGET" "cd '$APP_DIR' && docker compose pull --quiet && docker compose up -d --wait --remove-orphans && docker image prune -f"
-
-      - name: Log out of the registry
-        if: always()
-        run: ssh "$TARGET" docker logout ghcr.io || true
+          if [ -z "$WEBHOOK_URL" ]; then
+            echo "ERROR: DOKPLOY_WEBHOOK_URL secret is not set!"
+            exit 1
+          fi
+          echo "Triggering Dokploy Webhook..."
+          curl -fsSL -X POST "$WEBHOOK_URL"
+          echo "Deployment triggered successfully!"
