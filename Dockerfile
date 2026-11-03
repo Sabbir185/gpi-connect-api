@@ -21,6 +21,8 @@ WORKDIR /app
 COPY --from=build /out/ ./bin/
 COPY migrations ./migrations
 
+ENV PORT=8080
+
 USER app
 
 HEALTHCHECK --interval=10s --timeout=3s --start-period=10s --retries=3 \
