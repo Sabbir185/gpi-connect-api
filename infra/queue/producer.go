@@ -3,6 +3,7 @@ package queue
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
@@ -15,7 +16,18 @@ const (
 	welcomePushDelay = 5 * time.Second
 )
 
-func RedisOpt(redisAddr string) asynq.RedisClientOpt {
+func RedisOpt(redisAddr string) asynq.RedisConnOpt {
+	redisAddr = strings.TrimSpace(redisAddr)
+	if strings.HasPrefix(redisAddr, "redis://") || strings.HasPrefix(redisAddr, "rediss://") || strings.HasPrefix(redisAddr, "redis-socket://") || strings.HasPrefix(redisAddr, "redis-sentinel://") {
+		if opt, err := asynq.ParseRedisURI(redisAddr); err == nil {
+			return opt
+		}
+	}
+	if strings.Contains(redisAddr, "@") {
+		if opt, err := asynq.ParseRedisURI("redis://" + redisAddr); err == nil {
+			return opt
+		}
+	}
 	return asynq.RedisClientOpt{Addr: redisAddr}
 }
 
